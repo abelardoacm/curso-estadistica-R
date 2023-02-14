@@ -1,0 +1,545 @@
+---
+title: "Dia-2-IntroInferencial"
+author: "Abelardo Aguilar"
+date: "2023-02-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ¿Qué es inferir en estadística? - de lo pequeño a lo grande
+
+Cuando Cristobal Colón inició su viaje desde Europa lo hizo pensando que la Tierra era esférica y que su circunferencia era de 3/4 del tamaño real. Para embarcarse en su empresa, Colón hizo una suposición (errónea) sobre el mundo real, ya que planteó sus objetivos teniendo en cuenta un modelo pequeño del mundo. 
+
+Esta inferencia es un gran ejemplo del reto al que nos enfrentamos en el quehacer de la estadística. 
+
+Nuestras inferencias se basan en lo que extraemos de una muestra, y nuestros modelos dibujan a ese mundo pequeño del que provienen, mientras intentan aproximarse a describirnos el mundo real.
+
+Las inferencias estadísticas son siempre representaciones incompletas del mundo grande.
+
+
+#### El cuento de toda inferencia - conjeturas
+
+Supongamos que tenemos una bolsa con cuatro canicas de dos colores, no podemos verlas pero queremos intentar adivinar la proporción de cada color. 
+
+```{r escenarios-canicas, include=TRUE}
+# Con dos posibles colores...
+colores <- c("\u25CF", "\u25CB")
+# simulamos una bolsa aleatoria de 4 canicas y no la miramos
+canicas_en_la_bolsa <- sample(colores, 4, replace = TRUE)
+
+```
+
+De inicio debemos considerar todos los posibles escenarios:
+
+```{r conjeturas-canicas, include=TRUE}
+# Las representaremos como bolitas
+
+e1 <- rep("\u25CF", 4)
+e2 <- c("\u25CF", "\u25CF", "\u25CF", "\u25CB")
+e3 <- c("\u25CF", "\u25CF", "\u25CB", "\u25CB")
+e4 <- c("\u25CF", "\u25CB", "\u25CB", "\u25CB")
+e5 <- rep("\u25CB", 4)
+
+cat("Escenario 1: ", paste0(e1, collapse = " "), "\n")
+cat("Escenario 2: ", paste0(e2, collapse = " "), "\n")
+cat("Escenario 3: ", paste0(e3, collapse = " "), "\n")
+cat("Escenario 4: ", paste0(e4, collapse = " "), "\n")
+cat("Escenario 5: ", paste0(e5, collapse = " "), "\n")
+
+```
+
+Ya que no hemos sacado ninguna canica, todas las conjeturas son posibles e igual de probables.
+
+Ahora imaginemos que podemos tomar una "muestra" y sacamos 2 canicas, devolviéndolas a la bolsa cada ocasión. Esta es la secuencia de colores observada.
+
+```{r conjeturas-canicas, include=TRUE}
+muestra_1 <- c(sample(canicas_en_la_bolsa,1),
+               sample(canicas_en_la_bolsa,1))
+
+cat("Mi muestra observada fue:", muestra_1)
+```
+
+En este punto podemos intentar adivinar cuál es la proporción de colores en la bolsa. 
+Modifica la cantidad de canicas de cada color para configurar tu propia inferencia.
+
+```{r mi_inferencia-canicas, include=TRUE}
+n_blancas=3
+n_negras=1
+
+mi_inferencia <- c(rep("\u25CF",n_negras),rep("\u25CB",n_blancas))
+cat("Mi inferencia es: ", mi_inferencia, "\n")
+```
+
+Consideremos entonces la conjetura que cada uno de nosotros realizó. Esto lo podemos ilustrar como un árbol que se bifurca. 
+
+Los círculos representan las canicas, y muestran el "universo" congruente con lo que podríamos observar al tomar una canica. Pensemos que los ejes consituyen los caminos que podemos tomar y los ejes las paradas en nuestro recorrido.
+
+```{r mi_conjetura_o1-canicas, include=TRUE}
+library(igraph)
+
+n_black <- n_negras
+central_node <- c("central")
+l1_nodes <- paste("l1", 1:4, sep="_")
+edges_l1 <- cbind(central_node, l1_nodes[1:4])
+edges <- edges_l1
+graph <- graph_from_edgelist(edges, directed=FALSE)
+V(graph)$color[which(V(graph)$name == "central")] <- "transparent"
+V(graph)$frame.color[which(V(graph)$name == "central")] <- "transparent"
+
+for (i in 1:4) {
+  if (i <= n_black) {
+    V(graph)$color[which(V(graph)$name == l1_nodes[i])] <- "black"
+  } else {
+    V(graph)$color[which(V(graph)$name == l1_nodes[i])] <- "white"
+  }
+  V(graph)$frame.color[which(V(graph)$name == l1_nodes[i])] <- "blue"
+}
+
+plot(graph, vertex.size=30, vertex.label=NA)
+```
+Ahora podríamos preguntarnos, de acuerdo con mi conjetura, ¿de cuántas formas puedo observar una canica negra al sacar una de la bolsa?... y para responderlo podemos proceder a contar cuantos caminos pasan por observar "una canica negra". 
+
+Procedemos a comlpicar un poco las cosas. Pensemos ahora en todas las observaciones de dos canicas congruentes con nuestra conjetura. Para ello ampliamos nuestro esquema y lo ramificamos en un segundo nivel.
+
+```{r mi_conjetura_o2-canicas, include=TRUE}
+
+central_node <- c("central")
+l1_nodes <- paste("l1", 1:4, sep="_")
+l2_nodes <- paste("l2", 1:16, sep="_")
+edges_l1 <- cbind(central_node, l1_nodes[1:4])
+edges_l2 <- c()
+for (i in 1:4) {
+  l2_indices <- (4*(i-1) + 1):(4*i)
+  l2_connections <- cbind(l1_nodes[i], l2_nodes[l2_indices])
+  edges_l2 <- rbind(edges_l2, l2_connections)
+}
+edges <- rbind(edges_l1, edges_l2)
+graph <- graph_from_edgelist(edges, directed=FALSE)
+V(graph)$color[which(V(graph)$name == "central")] <- "transparent"
+V(graph)$frame.color[which(V(graph)$name == "central")] <- "transparent"
+
+for (i in 1:4) {
+  if (i <= n_black) {
+    V(graph)$color[which(V(graph)$name == l1_nodes[i])] <- "black"
+  } else {
+    V(graph)$color[which(V(graph)$name == l1_nodes[i])] <- "white"
+  }
+  V(graph)$frame.color[which(V(graph)$name == l1_nodes[i])] <- "blue"
+}
+
+for (i in 1:4) {
+  l2_indices <- (4*(i-1) + 1):(4*i)
+  for (j in l2_indices) {
+    if (j <= 4*i - 4 + n_black) {
+      V(graph)$color[which(V(graph)$name == l2_nodes[j])] <- "black"
+    } else {
+      V(graph)$color[which(V(graph)$name == l2_nodes[j])] <- "white"
+    }
+    V(graph)$frame.color[which(V(graph)$name == l2_nodes[j])] <- "red"
+  }
+}
+
+plot(graph, vertex.size=10, vertex.label=NA)
+```
+
+
+En este momento podríamos responder, en base a nuestra inferencia o conjetura, ¿de cuántas formas puedo recorrer el esquema desde el centro y observar dos canicas negras?
+
+O, ¿de cuántas formas puedo recorrer el esquema desde el centro y observar dos canicas negras?
+
+```{r caminos_congruentes-canicas, include=TRUE}
+caminos_congruentes_2_blancas = (4-n_negras)*(4-n_negras)
+caminos_congruentes_2_negras = (n_negras)*(n_negras)
+
+cat(" El número de formas congruentes en que puedo observar 2 blancas es: ", caminos_congruentes_2_blancas, "\n")
+cat(" El número de formas congruentes en que puedo observar 2 negras es: ", caminos_congruentes_2_negras, "\n")
+
+```
+
+Podemos y debemos contrastar estos escenarios con todos los escenarios posibles para n observaciones, en nuestro caso 16 caminos posibles. ¿Cómo sabemos cuántos caminos totales son posibles? Para este ejercicio con potencias de 4.
+
+```{r caminos_posibles, include=TRUE}
+caminos_posibles_2_observaciones = 4^2
+cat(" El número total de observaciones posibles para dos observaciones de 4 canicas es 4^2 = ", caminos_posibles_2_observaciones, "\n")
+
+caminos_posibles_3_observaciones = 4^3
+cat(" El número total de observaciones posibles para tres observaciones de 4 canicas es 4^3 = ", caminos_posibles_3_observaciones, "\n")
+
+caminos_posibles_4_observaciones = 4^4
+cat(" El número total de observaciones posibles para tres observaciones de 4 canicas es 4^4 = ", caminos_posibles_4_observaciones, "\n")
+```
+
+Ahora debemos contrastar todos los posibles escenarios sobre los colores de la bolsa de canicas para preguntarnos qué tan plausible es observar el resultado de nuestra muestra de dos canicas, esto nos dirá qúe conjetura es más plausible (o mejor dicho, de cuántas maneras cada escenario puede producir la observación de la muestra de dos canicas).
+
+```{r recordar_muestra, include=TRUE}
+cat("Mi muestra observada fue:", muestra_1)
+```
+
+```{r no_de_caminos_por_escenario, include=TRUE}
+n_negras_e1 = length(grep("\u25CF", e1))
+p_negras_e1 = prod(ifelse(muestra_1=="\u25CF",(n_negras_e1/4),((4-n_negras_e1)/4)))
+
+n_negras_e2 = length(grep("\u25CF", e2))
+p_negras_e2 = prod(ifelse(muestra_1=="\u25CF",(n_negras_e2/4),((4-n_negras_e2)/4)))
+
+n_negras_e3 = length(grep("\u25CF", e3))
+p_negras_e3 = prod(ifelse(muestra_1=="\u25CF",(n_negras_e3/4),((4-n_negras_e3)/4)))
+
+n_negras_e4 = length(grep("\u25CF", e4))
+p_negras_e4 = prod(ifelse(muestra_1=="\u25CF",(n_negras_e4/4),((4-n_negras_e4)/4)))
+
+n_negras_e5 = length(grep("\u25CF", e5))
+p_negras_e5 = prod(ifelse(muestra_1=="\u25CF",(n_negras_e5/4),((4-n_negras_e5)/4)))
+
+plausibilidades <- c((p_negras_e1*16),(p_negras_e2*16),(p_negras_e3*16),(p_negras_e4*16),(p_negras_e5*16))
+plausibilidades <- plausibilidades/sum(plausibilidades)
+
+cat("Escenario","\t Formas de producir ",muestra_1,"\t Plausibilidad \n")
+cat(e1,"\t ",(p_negras_e1*16),"\t\t\t\t ", plausibilidades[1] ,"\n")
+cat(e2,"\t ",(p_negras_e2*16),"\t\t\t\t ", plausibilidades[2] ,"\n")
+cat(e3,"\t ",(p_negras_e3*16),"\t\t\t\t ", plausibilidades[3] ,"\n")
+cat(e4,"\t ",(p_negras_e4*16),"\t\t\t\t ", plausibilidades[4] ,"\n")
+cat(e5,"\t ",(p_negras_e5*16),"\t\t\t\t ", plausibilidades[5] ,"\n")
+
+```
+
+Esto es un graaaaan avance, pues en este momento hay escenarios que se consolidan como los mejores escenarios para las proporciones de canicas en la bolsa.
+
+Para tener una mayor certeza en cual de ellos es el real, podemos continuar tomando muestras.
+
+Una vez mas extraigamos una canica de la bolsa y asignemosla al objeto muestra_2
+
+```{r muestra_2, include=TRUE}
+muestra_2 <- c(sample(canicas_en_la_bolsa,1))
+muestra_2
+```
+
+Y actualicemos la información de nuestra tabla
+
+```{r muestra_2, include=TRUE}
+conteos_caminos_2 <- c(prod(ifelse(muestra_2=="\u25CF",(n_negras_e1/4),((4-n_negras_e1)/4))),
+                       prod(ifelse(muestra_2=="\u25CF",(n_negras_e2/4),((4-n_negras_e2)/4))),
+                       prod(ifelse(muestra_2=="\u25CF",(n_negras_e3/4),((4-n_negras_e3)/4))),
+                       prod(ifelse(muestra_2=="\u25CF",(n_negras_e4/4),((4-n_negras_e4)/4))),
+                       prod(ifelse(muestra_2=="\u25CF",(n_negras_e5/4),((4-n_negras_e5)/4))))
+
+plausibilidades_2 <- (conteos_caminos_2*plausibilidades)/sum(conteos_caminos_2)
+
+cat("Para la muestra: ",muestra_2,"\n\n")
+cat("Escenario","\t Formas de producir la muestra ","\t Nueva plausibilidad \n")
+cat(e1,"\t ",(conteos_caminos_2[1]*4^(length(muestra_2))),"\t\t\t\t\t\t ", plausibilidades_2[1] ,"\n")
+cat(e2,"\t ",(conteos_caminos_2[2]*4^(length(muestra_2))),"\t\t\t\t\t\t ", plausibilidades_2[2] ,"\n")
+cat(e3,"\t ",(conteos_caminos_2[3]*4^(length(muestra_2))),"\t\t\t\t\t\t ", plausibilidades_2[3] ,"\n")
+cat(e4,"\t ",(conteos_caminos_2[4]*4^(length(muestra_2))),"\t\t\t\t\t\t ", plausibilidades_2[4] ,"\n")
+cat(e5,"\t ",(conteos_caminos_2[5]*4^(length(muestra_2))),"\t\t\t\t\t\t ", plausibilidades_2[5] ,"\n")
+
+```
+
+Y con ello, los contendientes van difiriendo más en sus posibilidades de ser el escenario real.
+
+Hagamos un poco de trampa y veamos ahora una tercer muestra, en esta ocasión de 10 canicas:
+
+```{r muestra_2, include=TRUE}
+muestra_3 <- c(sample(canicas_en_la_bolsa,10, replace = TRUE))
+muestra_3
+```
+
+Y con esta valiosa información utilicemos el mismo código anterior para actualizar nuestra tabla y descubrir al escenario más pĺausible.
+
+```{r muestra_3, include=TRUE}
+conteos_caminos_3 <- c(prod(ifelse(muestra_3=="\u25CF",(n_negras_e1/4),((4-n_negras_e1)/4))),
+                       prod(ifelse(muestra_3=="\u25CF",(n_negras_e2/4),((4-n_negras_e2)/4))),
+                       prod(ifelse(muestra_3=="\u25CF",(n_negras_e3/4),((4-n_negras_e3)/4))),
+                       prod(ifelse(muestra_3=="\u25CF",(n_negras_e4/4),((4-n_negras_e4)/4))),
+                       prod(ifelse(muestra_3=="\u25CF",(n_negras_e5/4),((4-n_negras_e5)/4))))
+
+plausibilidades_3 <- (conteos_caminos_3*plausibilidades_2)/sum(conteos_caminos_3)
+
+cat("Para la muestra: ",muestra_3,"\n\n")
+cat("Escenario","\t Formas de producir la muestra ","\t Nueva plausibilidad \n")
+cat(e1,"\t ",(conteos_caminos_3[1]*4^(length(muestra_3))),"\t\t\t\t\t\t ", plausibilidades_3[1] ,"\n")
+cat(e2,"\t ",(conteos_caminos_3[2]*4^(length(muestra_3))),"\t\t\t\t\t\t ", plausibilidades_3[2] ,"\n")
+cat(e3,"\t ",(conteos_caminos_3[3]*4^(length(muestra_3))),"\t\t\t\t\t\t ", plausibilidades_3[3] ,"\n")
+cat(e4,"\t ",(conteos_caminos_3[4]*4^(length(muestra_3))),"\t\t\t\t\t\t ", plausibilidades_3[4] ,"\n")
+cat(e5,"\t ",(conteos_caminos_3[5]*4^(length(muestra_3))),"\t\t\t\t\t\t ", plausibilidades_3[5] ,"\n")
+
+```
+
+Nota que el ejercicio que realizamos fue distinto para todos, debido a los procesos aleatorios. Sin embargo, lo más seguro es que todos tengamos un claro candidato sobre cúal es la proporción correcta de canicas en cada uno de nuestros casos. Esto se debe a que seguimos el **método estadístico**.
+
+### Derby estadístico
+
+En este punto del método estadístico es donde existe una gran bifurcación con dos grandes caminos para continuar:
+
+  - Estadística Frecuentista. Parte de generalizaciones para extrapolar la frecuencia de nuestras observaciones y estimar la plausibilidad de cada escenario si pudieramos muestrear hasta el infinito. La certeza de dichas proyecciones dependerán de diversos estimadores, pero en general usaremos medidas de dispersión como la varianza y desviación estándar. Los intervalos o valores que responderíamos como correctos, estarían basados en pruebas estadísticas que comparan lo observado con lo proyectado al infinito.
+  
+  - Estadística Bayesiana. Mediante diversos métodos matemáticos, exploraríamos la plausibilidad posterior para encontrar el modelo que mejor explique los datos observados. Los intervalos o valores que responderíamos como correctos, estarían basados en algoritmos de exploración de probabilidades posteriores, estos métodos son, aproximaciones de gradillas, aproximaciónes cuadráticas y cadenas de Markov Montecarlo (MCMC).
+
+
+Intentemos aterrizarlo con las plausibilidades que generamos... y una muestra extra "acercandonos al infinito"
+
+
+```{r posteriors, include=TRUE}
+muestra_4 <- c(sample(canicas_en_la_bolsa,1000, replace = TRUE))
+conteos_caminos_4 <- c(prod(ifelse(muestra_4=="\u25CF",(n_negras_e1/4),((4-n_negras_e1)/4))),
+                       prod(ifelse(muestra_4=="\u25CF",(n_negras_e2/4),((4-n_negras_e2)/4))),
+                       prod(ifelse(muestra_4=="\u25CF",(n_negras_e3/4),((4-n_negras_e3)/4))),
+                       prod(ifelse(muestra_4=="\u25CF",(n_negras_e4/4),((4-n_negras_e4)/4))),
+                       prod(ifelse(muestra_4=="\u25CF",(n_negras_e5/4),((4-n_negras_e5)/4))))
+
+plausibilidades_4 <- (conteos_caminos_4*plausibilidades_3)/sum(conteos_caminos_4)
+
+n_negras_escenario <- c(n_negras_e1,n_negras_e2,n_negras_e3,n_negras_e4,n_negras_e5)
+plot(n_negras_escenario,plausibilidades, type = "l")
+plot(n_negras_escenario,plausibilidades_2, type = "l")
+plot(n_negras_escenario,plausibilidades_3, type = "l")
+plot(n_negras_escenario,plausibilidades_4, type = "l")
+```
+Podríamos pensar una analogía para escoger a nuestro escenario candidato mediante ambas aproximaciones. 
+
+Las pruebas estadísticas frecuentistas son regresiones lineales que evalúan nuestra apuesta sobre un valor posible.
+Los modelos bayesianos son como exploradores que intentan encontrar el pico más alto de esa "montaña".
+
+# PARTE 2
+
+# Análisis de datos con R: Toothgrowth
+
+En este análisis, aplicaremos los conocimientos adquiridos sobre medidas de dispersión, teorema del límite central, límites de confianza y distribución normal a un conjunto de datos llamado "Toothgrowth." El objetivo es examinar la variable de interés (len) y determinar si los datos siguen una distribución normal, estimar la media y la varianza de la población, y realizar pruebas de hipótesis para comparar la media de dos grupos.
+
+## Cargar y explorar los datos
+
+Para comenzar, cargamos la biblioteca que contiene los datos de Toothgrowth y exploramos su estructura y contenido.
+
+```{r ToothGrowth, include=TRUE}
+library(dplyr)
+data(ToothGrowth)
+
+ToothGrowth %>% head()
+```
+
+Observamos que los datos tienen dos variables: len (la longitud de los dientes) y supp (el tipo de suplemento utilizado para el tratamiento). La variable del suplemento tiene dos posibles niveles: OJ y VC.
+
+El suplemento VC se refiere a la vitamina C en forma de ácido ascórbico, mientras que el suplemento OJ se refiere al jugo de naranja. En el experimento, se evaluó la longitud de los dientes en ratones que recibieron uno de estos dos tipos de suplementos. La variable len representa la longitud de los dientes observada en cada ratón.
+
+El propósito del experimento era investigar si el suplemento tenía un efecto significativo en el crecimiento de los dientes en los ratones. La variable supp se utiliza para diferenciar los dos grupos de tratamiento y determinar si hay diferencias significativas en la longitud de los dientes entre los dos grupos.
+
+## Visualización de los datos
+
+Antes de comenzar con las pruebas estadísticas, es útil graficar los datos para tener una idea de su distribución y patrones.
+
+```{r ToothGrowth_hist, include=TRUE}
+hist(ToothGrowth$len, main = "Distribución de la longitud de los dientes", xlab = "Longitud", ylab = "Frecuencia", col = "gray", breaks = seq(0, 35, by = 1))
+```
+
+El histograma muestra que los datos tienen una distribución aproximadamente normal, con una media alrededor de 19.
+
+```{r ToothGrowth_hist_dens, include=TRUE}
+dens <- density(ToothGrowth$len)
+plot(dens, main = "Distribución de la longitud de los dientes", xlab = "Longitud", ylab = "Densidad", col = "dodgerblue")
+```
+
+El gráfico de densidad también sugiere una distribución normal.
+
+## Medidas de dispersión
+
+Para continuar, calculamos las medidas de dispersión para la variable len.
+
+```{r ToothGrowth_var_sd, include=TRUE}
+var_len <- var(ToothGrowth$len)
+sd_len <- sd(ToothGrowth$len)
+
+cat("La varianza de la longitud de los dientes es:", round(var_len, 2), "\n")
+cat("La desviación estándar de la longitud de los dientes es:", round(sd_len, 2), "\n")
+```
+
+Observamos que la varianza de la longitud de los dientes es 60.17 y la desviación estándar es 7.75.
+
+## Distribución normal
+
+A continuación, verificamos si los datos siguen una distribución normal. Para esto, utilizamos un gráfico Q-Q y una prueba de normalidad.
+
+Un gráfico Q-Q (Quantile-Quantile) es un tipo de gráfico utilizado en estadística para comparar la distribución de una muestra de datos con una distribución teórica conocida, como la distribución normal. El gráfico Q-Q muestra los cuantiles empíricos de la muestra en el eje vertical y los cuantiles teóricos de la distribución en el eje horizontal. Si los datos de la muestra se ajustan bien a la distribución teórica, los puntos en el gráfico Q-Q deberían aproximarse a una línea recta.
+
+
+Los gráficos Q-Q se utilizan comúnmente en estadística para evaluar la normalidad de una muestra de datos y para seleccionar modelos de distribución. También se utilizan para comparar dos muestras de datos para ver si siguen la misma distribución.
+
+```{r Q-Qplot, include=TRUE}
+qqnorm(ToothGrowth$len)
+qqline(ToothGrowth$len, col = "red")
+```
+
+El gráfico Q-Q muestra que los datos se ajustan bien a la recta teórica de la distribución normal, lo que sugiere que la distribución es normal. Lo cual también puede complementarse con la prueba de shapiro-wilk.
+
+La prueba de Shapiro-Wilk es una prueba de normalidad que evalúa si una muestra de datos proviene de una distribución normal. La prueba se basa en la hipótesis nula de que los datos provienen de una distribución normal y la hipótesis alternativa de que los datos no provienen de una distribución normal. 
+
+Opera mediante el cálculo de un estadístico de prueba W y su comparación con un valor crítico de la distribución teórica de W bajo la hipótesis nula de normalidad. Si el valor del estadístico de prueba W es menor que el valor crítico, entonces no hay suficiente evidencia para rechazar la hipótesis nula de normalidad y se concluye que los datos se distribuyen normalmente.
+
+El valor del estadístico de prueba W se calcula mediante una combinación de los coeficientes de regresión de la muestra y las desviaciones de la muestra de los valores de la media. El valor crítico de la distribución teórica de W depende del tamaño de la muestra y del nivel de significancia elegido.
+
+```{r shapiro_test, include=TRUE}
+shapiro.test(ToothGrowth$len)
+```
+
+La prueba de normalidad de Shapiro-Wilk no rechaza la hipótesis nula de normalidad de los datos (p > 0.05).
+
+## Teorema del límite central
+
+A continuación, bajo el teorema del límite central, estimamos la distribución muestral de la media y la varianza de la población.
+
+```{r TLC, include=TRUE}
+n <- length(ToothGrowth$len)
+
+mean_len <- mean(ToothGrowth$len)
+sd_mean <- sd(ToothGrowth$len) / sqrt(n)
+
+cat("La media de la longitud de los dientes es:", round(mean_len, 2), "\n")
+cat("La desviación estándar de la media de la longitud de los dientes es:", round(sd_mean, 2), "\n")
+
+var_mean <- var(ToothGrowth$len) / n
+
+cat("La varianza de la media de la longitud de los dientes es:", round(var_mean, 2), "\n")
+```
+
+La media de la longitud de los dientes es 18.81 y la desviación estándar de la media es 0.79. La varianza de la media es 0.34. Debido a que ya habíamos puesto a prueba su normalidad, podemos decir que la población de longitudes se dibuja correctamente con una distribución normal de 18.81 y desviación est. de 0.79, que podemos ilustrar de la siguiente forma:
+
+```{r Distribución_normal_teórica, include=TRUE}
+# Crear un vector de valores x para la densidad de probabilidad
+x <- seq(16, 22, length.out = 100)
+
+# Calcular los valores de la densidad de probabilidad para una distribución normal con media 18.81 y desviación estándar 0.79
+y <- dnorm(x, mean = 18.81, sd = 0.79)
+
+# Crear un gráfico de la distribución normal
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "Distribución normal con media 18.81 y desviación estándar 0.79", xlab = "Valores", ylab = "Densidad de probabilidad")
+```
+
+
+## Intervalos de confianza
+
+Calculamos los intervalos de confianza para la media y la varianza de la población.
+
+```{r , include=TRUE}
+# Calcular el intervalo de confianza para la media
+x <- ToothGrowth$len
+n <- length(x)
+s <- sqrt(var(x))
+alpha <- 0.1
+
+t <- qt(1 - alpha/2, n - 1)
+ci <- mean(x) + t * s / sqrt(n) * c(-1, 1)
+cat("El intervalo de confianza para la media es [", round(ci[1], 2), ", ", round(ci[2], 2), "].\n")
+
+# Calcular el intervalo de confianza para la varianza
+alpha <- 0.1
+df <- n - 1
+chisq_lower <- qchisq(1 - alpha/2, df)
+chisq_upper <- qchisq(alpha/2, df)
+ci_var <- df * var(x) / c(chisq_upper, chisq_lower)
+cat("El intervalo de confianza para la varianza es [", round(ci_var[1], 2), ", ", round(ci_var[2], 2), "].\n")
+
+```
+
+El intervalo de confianza del 95% para la media de la longitud de los dientes es (17.98, 19.63). El intervalo de confianza del 95% para la varianza de la longitud de los dientes es (45.17, 78.26).
+
+```{r , include=TRUE}
+# Crear un vector de valores x para la densidad de probabilidad
+x <- seq(16, 22, length.out = 100)
+
+# Calcular los valores de la densidad de probabilidad para una distribución normal con media 18.81 y desviación estándar 0.79
+y <- dnorm(x, mean = 18.81, sd = 0.79)
+
+# Crear un gráfico de la distribución normal
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "Distribución normal con media 18.81 y desviación estándar 0.79", xlab = "Valores", ylab = "Densidad de probabilidad")
+
+# Calcular el intervalo de confianza de la media
+n <- length(ToothGrowth$len)
+xbar <- mean(ToothGrowth$len)
+s <- sd(ToothGrowth$len)
+alpha <- 0.1
+z <- qt(1 - alpha/2, df = n - 1)
+se <- s / sqrt(n)
+ci <- xbar + c(-1, 1) * z * se
+
+# Agregar el sombreado del intervalo de confianza al gráfico
+x_shade <- seq(ci[1], ci[2], length.out = 100)
+y_shade <- dnorm(x_shade, mean = 18.81, sd = 0.79)
+polygon(c(x_shade, rev(x_shade)), c(y_shade, rep(0, length(y_shade))), col = "dodgerblue", border = NA, density = 10)
+
+# Agregar una leyenda al gráfico
+legend("topright", legend = "Intervalo de confianza del 95% para la media", fill = "dodgerblue", bty = "n")
+```
+
+
+## Pruebas de hipótesis
+
+Finalmente, realizamos pruebas de hipótesis para comparar la media de dos grupos en la variable de interés. Utilizamos una prueba t de dos muestras para determinar si el suplemento OJ tiene un efecto significativo en la longitud de los dientes en comparación con el suplemento VC.
+
+```{r , include=TRUE}
+
+# Seleccionar los datos para OJ y VC
+data_OJ <- ToothGrowth[ToothGrowth$supp == "OJ", "len"]
+data_VC <- ToothGrowth[ToothGrowth$supp == "VC", "len"]
+
+# Realizar una prueba t de dos muestras con varianzas iguales
+alpha <- 0.1
+n1 <- length(data_OJ)
+n2 <- length(data_VC)
+x1 <- mean(data_OJ)
+x2 <- mean(data_VC)
+s1 <- sqrt(var(data_OJ))
+s2 <- sqrt(var(data_VC))
+df <- n1 + n2 - 2
+s_p <- sqrt(((n1 - 1) * s1^2 + (n2 - 1) * s2^2) / df)
+t_stat <- (x1 - x2) / (s_p * sqrt(1/n1 + 1/n2))
+t_crit <- qt(1 - alpha/2, df)
+p_value <- 2 * pt(-abs(t_stat), df)
+cat("La diferencia de medias es", round(x1 - x2, 2), "con un intervalo de confianza del", round((x1 - x2) + t_crit * s_p * sqrt(1/n1 + 1/n2), 2), "al", round((x1 - x2) - t_crit * s_p * sqrt(1/n1 + 1/n2), 2), "y un valor p de", round(p_value, 3), ".\n")
+
+
+```
+
+La prueba t de dos muestras no rechaza la hipótesis nula de que las medias de los grupos son iguales (p > 0.05).
+
+```{r , include=TRUE}
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "Comparación de las medias", xlab = "Valores", ylab = "Densidad de probabilidad")
+polygon(c(x_shade, rev(x_shade)), c(y_shade, rep(0, length(y_shade))), col = "dodgerblue", border = NA, density = 10)
+
+# Agregar una leyenda al gráfico
+
+mean_OJ <- mean(data_OJ)
+mean_VC <- mean(data_VC)
+abline(v = mean_OJ, lty = 2, col = "red")
+abline(v = mean_VC, lty = 2, col = "green")
+
+# Agregar una leyenda para las medias
+legend("topleft", legend = c("Media OJ", "Media VC"), lty = 2, col = c("red", "green"), bty = "n")
+
+```
+
+En conclusión, los datos de Toothgrowth muestran una distribución aproximadamente normal, con una media alrededor de 19 y una desviación estándar de 4.8. La aplicación del teorema del límite central y los intervalos de confianza permitieron estimar la media y la varianza de la población. Además, las pruebas de hipótesis no encontraron diferencias significativas en la longitud de los dientes entre los dos tipos de suplemento.
+
+... O podemos realizar las pruebas que ya hicimos con el siguiente bloque de codigo:
+
+
+```{r , include=TRUE}
+data_OJ <- filter(ToothGrowth, supp == "OJ")
+data_VC <- filter(ToothGrowth, supp == "VC")
+
+t.test(data_OJ$len, data_VC$len, var.equal = TRUE)
+
+fit <- lm(len ~ supp + dose, data = ToothGrowth)
+anova(fit)
+```
+
+
+
+
+
+
+
+
+
+

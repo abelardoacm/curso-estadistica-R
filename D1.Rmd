@@ -1,0 +1,293 @@
+---
+title: "Dia-1-OOP"
+author: "Abelardo Aguilar"
+date: "2023-02-3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ¿Por qué R como herramienta estadística?
+
+R es ampliamente reconocido como una de las mejores herramientas de análisis estadístico y es particularmente popular para analizar datos biológicos. Algunas de las razones incluyen su flexibilidad, accesibilidad y interfaz amigable para el usuario, en gran medida porque está acompañado de una *Integrated Development Environment (IDE)*
+
+Destaca además su capacidad para manejar y manipular estructuras de datos complejas. R tiene una amplia gama de funciones y paquetes específicos diseñados para el análisis de datos biológicos, como los paquetes **{biodiversity}{biomod2}** o el proyecto ***Bioconductor***, que proporcionan métodos estadísticos y bioinformáticos avanzados.
+
+Además R es un lenguaje de programación de código abierto, lo que significa que está disponible gratuitamente para todos los usuarios, independientemente de sus recursos financieros. Esto es curiosa y lamentablemente importante en el campo de la investigación biológica, donde trabajamos con presupuestos limitados y el cómputo para los análisis de datos usualmente queda relegado.
+
+Por último, R tiene una comunidad amplia de usuarios y desarrolladores, lo que se traduce en una gran cantidad de recursos y soporte disponibles para aquellos que usan el lenguaje. Esto incluye foros, paquetes contribuidos por los usuarios, así como documentación completa y tutoriales.
+
+### OOP - Programación Orientada a Objetos
+
+Programación Orientada a Objetos ***(OOP)*** es un paradigma de programación que se basa en el concepto de "objetos". Los objetos son tipos de datos definidos por el usuario que encapsulan datos y comportamientos. En un lenguaje orientado a objetos como R, los objetos interactúan entre sí para realizar una tarea. Frecuentemente en la investigación biológica los objetos representarán entidades del mundo real.
+
+**En R TODO ES UN OBJETO...** hasta las funciones
+
+#### OOP - object
+
+El concepto de objeto en la OOP se refiere a una estructura de datos que guarda información sobre una entidad. Un objeto se conforma tanto de datos como métodos, comunmente referidos también como atributos y comportamientos.
+
+Podemos pensar en una **clase** como un plano para crear algo en específico. Por ejemplo podríamos considerar un automóvil. 
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://www.miltonmarketing.com/wp-content/uploads/2018/04/oopconceptimage15345345.png")
+```
+
+Sus atributos podrían ser también su modelo o color, mientras que sus comportamientos podrían ser acelerar, frenar, etc. Cada carro individual (objeto) creado con este plano, será una instancia de la clase "car".
+
+De la misma forma podemos crear objetos para representar entidades biológicas, como una secuencia de nucleótidos, una proteína, etc.
+
+El uso de objetos permite que el código sea modular, eficiente y (deseablemente) fácil de mantener y entender.
+
+Ejemplo:
+
+```{r object-example, echo=TRUE}
+library(R6)
+
+Virus <- R6Class("Virus",
+  public = list(
+    name = NULL,
+    family = NULL,
+    shape = NULL,
+    number_of_proteins = NULL,
+
+    initialize = function(name, family, shape, number_of_proteins) {
+      self$name <- name
+      self$family <- family
+      self$shape <- shape
+      self$number_of_proteins <- number_of_proteins
+    }
+  )
+)
+
+
+sars_cov2 <- Virus$new("SARS-CoV-2", "Coronaviridae", "spherical", 80)
+sars_cov1 <- Virus$new("SARS-CoV-1", "Coronaviridae", "spherical", 75)
+mers <- Virus$new("MERS", "Coronaviridae", "spherical", 70)
+hiv <- Virus$new("HIV", "Retroviridae", "spherical", 120)
+
+
+```
+
+DATO EXTRA: Las clases en R se generan mediante dos sistemas generales, S3 y S4. Los primeros son los sistemas originales y todas las funciones {base} pueden operar con ellos. Sin embargo los sistemas S4 son los principales en el dia a dia como herreros, ya que permiten la herencia y polimorfismo.
+
+#### OOP - inheritance
+
+La herencia es un concepto que permite la creación de nuevas clases basadas en clases preexistentes. La nueva clase hereda todos los atributos y comportamientos, así como redefine nuevos.
+
+Siguiendo la analogía de la clase "car" como un plano, a partir de este podríamos crear un nuevo plano "sports_car", con atributos y comportamientos modificados. O una clase "PathogenicVirus" desde una original "Virus", por ejemplo:
+
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://3.bp.blogspot.com/--Yv1gSqWe3Q/V-50GhEGx9I/AAAAAAAAHHg/iM6EguKW7mU6vC5vt-URBJNXXjCY_0QMgCEw/s1600/Object%2Boriented%2Bprogramming%2Bconcepts%2Bin%2BJava.jpg")
+```
+
+```{r inheritance-example, echo=TRUE}
+
+# Define la clase PathogenicVirus con un nuevo atributo (virulence) y método (get_virulence())
+PathogenicVirus <- R6Class("PathogenicVirus",
+  inherit = Virus,
+  public = list(
+    virulence = NULL,
+
+    initialize = function(name, family, shape, number_of_proteins, virulence) {
+      super$initialize(name, family, shape, number_of_proteins)
+      self$virulence <- virulence
+    },
+
+    get_virulence = function() {
+      return(self$virulence)
+    },
+    get_family = function() {
+      return(self$family)
+    }
+  )
+)
+
+# Creamos las instancias de clase PathogenicVirus para virus importantes
+
+sars_cov2 <- PathogenicVirus$new("SARS-CoV-2", "Coronaviridae", "spherical", 80, 5)
+sars_cov1 <- PathogenicVirus$new("SARS-CoV-1", "Coronaviridae", "spherical", 75, 4)
+mers <- PathogenicVirus$new("MERS", "Coronaviridae", "spherical", 70, 4)
+hiv <- PathogenicVirus$new("HIV", "Retroviridae", "spherical", 120, 4)
+
+```
+
+Así mismo podemos crear una función para comparar entre las virulencias de dos virus. La función por sí misma es también un objeto.
+
+```{r function-example, echo=TRUE}
+
+compare_virulence <- function(virus1, virus2) {
+  virulence1 <- virus1$get_virulence()
+  virulence2 <- virus2$get_virulence()
+  ratio <- virulence1 / virulence2
+  return(ratio)
+}
+
+ratio <- compare_virulence(sars_cov2, sars_cov1)
+if (ratio > 1) {
+  print(paste("SARS-CoV-2 is", ratio, "times more virulent than SARS-CoV-1"))
+} else {
+  print(paste("SARS-CoV-1 is", 1/ratio, "times more virulent than SARS-CoV-2"))
+}
+
+```
+
+#### OOP - Polymorphism
+
+El polimorfismo es un concepto de la OOP que permite el usar diferentes objetos de una clase de una forma similar, a pesar de que cada uno tenga sus atributos y comportamientos específicos. Podemos imaginar que tenemos una canasta de frutas, como melón o sandía. Programáticamente, podemos tratar a cada fruta de la misma forma, a partir de sus atributos comunes, a pesar de que varían en muchas propiedades. Esto contribuye a un código **altamente eficiente y reusable para el análisis estadístico**.
+
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://miro.medium.com/max/638/1*cFSJ95jyw-ACiWaIRxAbbg.jpeg")
+```
+
+```{r polymorphism-example, echo=TRUE}
+#Creamos nuestra "canasta" como una lista.
+
+virus_list <- list(sars_cov1,sars_cov2,mers,hiv)
+
+#Y operar con todos ellos a la vez sin importarnos su clase específica o atributos
+for (vir in virus_list) {
+print(vir$get_family())
+}
+
+```
+
+#### OOP - Abstraction
+
+La abstracción es un concepto en la OOP que se refiere al proceso de ocultar los detalles de implementación de un objeto y solo exponer sus características y comportamiento esenciales. Esto le permite crear objetos que son fáciles de usar y comprender, sin tener que preocuparse por la complejidad subyacente.
+
+Piensa en la abstracción como una forma de simplificar objetos. Por ejemplo, imagina que tienes un coche. No necesitas saber cómo funciona el motor, qué tipo de combustible usa o cómo funciona la transmisión si solo quieres conducirlo. Todo lo que necesitas saber es cómo girar la llave, pisar el acelerador y conducir. Esto es abstracción.
+
+Usando como ejemplo el mismo codigo del bloque anterior, podemos darnos cuenta que lo que R nos muestra se limita a la mínima información de los procesos que subyacen el proceso.
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://www.learnsimpli.com/wp-content/uploads/2019/08/5in.png")
+```
+
+#### OOP - Encapsulation
+
+La encapsulación es un concepto en la Programación Orientada a Objetos que se refiere al proceso de agrupar datos y métodos que operan con esos datos dentro de una sola unidad u objeto. Esto ayuda a reducir la complejidad al mantener el código relacionado en un solo lugar y facilita cambiar y mantener el código.
+
+La encapsulación es una forma de empaquetar atributos y comportamientos. Por ejemplo, imagina que tienes un lápiz. El lápiz tiene un núcleo de grafito, un borrador y una carcasa de madera. El núcleo de grafito son los datos, y el borrador y la carcasa de madera son los métodos que operan con esos datos, mientras que el lápiz es el objeto.
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://www.scientecheasy.com/wp-content/uploads/2018/06/encapsulation-in-java.png")
+```
+
+### Sesgos Herreros
+
+En contraste a Python, R es un lenguaje de programación utilizado para un rango mas acotado de tareas. Sin embargo dentro de esta gama se encuentran el manejo de bases de datos científicas, visualización de datos y ... la estadística. Así como su facilidad de instrumentación se puede explicar por RStudio, un IDE amigable para programadores inexpertos, R está bien complementado con un grupo de paquetes agrupados en el {tidyverse}
+
+#### Habitando el tidyverso
+
+Tidyverse es una colección de paquetes de R que proporciona un conjunto de herramientas potente y muy coherente. Está diseñado para facilitar el trabajo con datos complejos y desordenados, y se ha convertido en una de las principales fortalezas de R sobre Python para el análisis estadístico de datos biológicos, pues reduce la necesidad de cambiar entre diferentes paquetes o funciones para diferentes tareas, a su vez haciendo menor el riesgo de errores.
+
+Supongamos que tenemos un conjunto de datos que contiene información sobre una variable para diferentes especies. Los datos tienen un formato desordenado e inconsistente, con datos faltantes y especies repetidas para la misma observación.
+
+Usando tidyverse, podemos limpiar y manipular fácilmente los datos para obtener un formato estandarizado, con observaciones únicas y cada columna representa una variable (formato tidy). Podemos usar el paquete tidyr para remodelar los datos, el paquete dplyr para filtrar y agregar los datos y el paquete stringr para limpiar nombres inconsistentes y otros datos de texto. Una vez que los datos están en un formato tidy, podemos usar el paquete ggplot2 para crear gráficas complejas y visualmente atractivas, que nos permiten explorar y comunicar patrones en los datos.
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://www.storybench.org/wp-content/uploads/2017/05/tidyverse.png")
+```
+#### Operador %>% {magrittr}
+
+El operador **%>%** es una forma abreviada de escribir cadenas complejas de llamados entre funciones secuenciales en R. Fue introducido en el paquete **{magrittr}** y desde entonces ha sido ampliamente adoptado. 
+
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://magrittr.tidyverse.org/logo.png")
+```
+
+El operador "pipe" te permite tomar la salida de una función y pasarla como argumento a otra función, incluso sin tener que especificarlo manualmente (entre tidyverse).
+
+Ejemplo para usar el operador de tubería y calcular el valor promedio de la columna Sepal.Length en el conjunto de datos ***iris***:
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://www.embedded-robotics.com/wp-content/uploads/2022/01/Iris-Dataset-Classification.png")
+```
+
+```{r pipe-example, echo=TRUE}
+library(tidyverse)
+data("iris")
+
+iris %>% 
+  select(Sepal.Length) %>% 
+  pull(Sepal.Length) %>% 
+  mean()
+
+```
+
+
+En este ejemplo, los datos de iris primero pasan a través de la función select para extraer la columna Sepal.Length, y luego pasan a través de la función mean para calcular el valor promedio. 
+
+Además, el operador pipe reduce la necesidad de variables temporales. Al pasar la salida de una función directamente a otra, puede eliminar la necesidad de objetos intermedios que de otra manera tendrían que ser almacenados en la memoria.
+
+#### Lectura y limpieza de datos
+
+```{r load_clean-example, echo=TRUE}
+
+# Cargar la base de datos de ejemplo "iris"
+iris_data <- iris
+
+# Uso de tidyr para agrupar las columnas en una misma y separar la variable y valor en dos diferentes
+iris_data_tidy <- iris_data %>% 
+  gather(variable, value, -Species)
+
+# Uso the stringr para limpiar nombres inconsistentes
+iris_data_tidy$variable <- str_to_title(iris_data_tidy$variable)
+
+# Uso de dplyr para eliminar filas incompletas
+iris_data_tidy_clean <- iris_data_tidy %>% 
+  filter(!is.na(value))
+
+iris_data %>% head()
+iris_data_tidy %>% head()
+iris_data_tidy_clean %>% head()
+```
+
+#### Reestructuración de datos
+
+```{r reshape-example, echo=TRUE}
+# Uso de tidyr para ampliar los datos al formato wider, una variable por columna.
+
+iris_data_grouped <- iris_data_tidy_clean %>%
+  group_by(Species, variable) %>%
+  summarise(mean = mean(value))
+
+iris_data_wide <- iris_data_grouped %>%
+  spread(variable, mean)
+
+iris_data_grouped
+iris_data_wide
+```
+
+#### Filtrado y agregación
+
+```{r filter_aggregation-example, echo=TRUE}
+# Uso de dplyr para agrupar los datos por especie y calcular el valor promedio de cada variable.
+iris_data_grouped <- iris_data_wide %>% 
+  group_by(Species) %>% 
+  summarise_all(mean)
+```
+
+#### Principios de visualización
+
+```{r visualization-example, echo=TRUE}
+
+iris_data_grouped <- iris %>%
+  gather(variable, value, -Species) %>%
+  group_by(Species, variable) %>%
+  summarise(mean = mean(value))
+
+# heatmap
+ggplot(iris_data_grouped, aes(Species, variable)) +
+  geom_tile(aes(fill = mean)) +
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal()
+```
+
