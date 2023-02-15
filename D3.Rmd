@@ -1,0 +1,175 @@
+---
+title: "Dataviz"
+author: "Abelardo"
+date: "2023-02-15"
+output: html_document
+---
+
+```{r , include=TRUE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ggplot2
+
+... es una librería orientada a la visualización de datos, que se basa en los principios de "The Grammar of Graphics" por Leland Wilkinson. En este libro se propone un marco teórico, así como un lenguaje universal para la creación de gráficas, a partir de una abstracción de los elementos comunes de las gráficas en componentes semánticos.
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://r.qcbs.ca/workshop03/book-en/images/gglayers.png")
+```
+
+De acuerdo a dicha gramática, siempre podemos concebir un gráfico como una combinación de estéticas - ***aesthetics***, que define la reprsentación visual de los datos y ***geometrías***, que determina el tipo de arreglo y marca usado para mostrar los puntos de datos. La combinación de estos componentes es la mínima para construir cualquier tipo de gráfico, aunque existen distintos tipos de estéticas y geometrías.
+
+ggplot2 implementa la gramática de las gráficas en un conjunto de funciones con **sintáxis declarativa**, y se encarga del renderizado un gráfico siguiendo nuestras instrucciones
+
+Es por ello que constituye una herramienta programática sistemática y flexible para crear gráficas.
+
+Para poner en práctica este conocimiento, utilizaremos la base de datos **mtcars**
+
+`mtcars` es un conjunto de datos incorporado en R que contiene información sobre varios modelos de automóviles, extraídos de la revista Motor Trend US de 1974.
+
+Aquí hay una lista de las variables:
+
+-   `mpg`: Millas por galón
+-   `cyl`: Número de cilindros
+-   `disp`: Desplazamiento del motor
+-   `hp`: Caballos de fuerza brutos
+-   `drat`: Relación de eje trasero
+-   `wt`: Peso (1000 libras)
+-   `qsec`: Tiempo de 1/4 de milla
+-   `vs`: Motor (0 = en forma de V, 1 = recto)
+-   `am`: Transmisión (0 = automática, 1 = manual)
+-   `gear`: Número de engranajes hacia adelante
+-   `carb`: Número de carburadores
+
+## Campos semánticos de la gramática de las gráficas
+
+### Datos
+
+La primer capa elemental en un gráfico son los datos que la construyen. Aunque por sí mismos no tienen un correspondiente visual.
+
+Para indicarle los datos a **ggplot**, utilizaremos la función ggplot(), con una sintaxis:
+
+-   ggplot(datos, ...)
+
+### Estéticas
+
+Sin embargo esta función, además de los datos, requiere como argumento que declaremos las estéticas de nuestras variables, es decir, sobre que elemento visual estarán mapeadas dichas variables.
+
+Los mapeos estéticos son los vínculos entre las variables en los datos y las propiedades visuales de la trama, pero no siempre son ejes de un plano, pueden ser también tamaños, colores, formas, etc.
+
+El código a continuación mapea las variables del peso (wt) y rendimiento (mpg) a los planos visuales x y respectivamente. Generando así, en sentido amplio, el primer estado del gráfico con un correspondiente visual.
+
+```{r , include=TRUE}
+data("mtcars")
+ggplot(mtcars, aes(x = wt, y = mpg))
+```
+
+Para mostrar el gráfico, necesitamos agregar una geometría.
+
+### Geometrías
+
+Las geometrías son las formas o figuras utilizadas para representar puntos de datos. ggplot2 proporciona una variedad de geometrías, incluidos puntos, líneas, barras y más.
+
+En este ejemplo, usaremos la geometría de punto, geom_point() para mostrar los datos como puntos individuales.
+
+```{r , include=TRUE}
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point()
+```
+
+O también podríamos utilizar la geometría linea:
+
+```{r , include=TRUE}
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_line()
+```
+
+... aunque no tiene mucho sentido para nuestros datos.
+
+### Escalas
+
+Las escalas son las reglas o recetas que se utilizan para pasar los valores de los datos a los valores estéticos utilizados en el gráfico.
+
+Por ejemplo, podríamos asignar una variable del conjunto de datos a una escala de colores. En este ejemplo, usaremos la función scale_color_gradient() para asignar la variable número de cilindros (cyl) a una escala de color.
+
+```{r , include=TRUE}
+ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) +
+  geom_point() +
+  scale_color_gradient(low = "blue", high = "red")
+```
+
+### Estadísticas
+
+Las estadísticas se utilizan para resumir o inferir sobre los datos de varias maneras. ggplot2 proporciona una variedad de transformaciones estadísticas, que incluyen agregación, suavizado y más.
+
+En nuestro ejemplo, usaremos la función stat_smooth() para añadir una línea de regresión suave al gráfico.
+
+```{r , include=TRUE}
+ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) +
+  geom_point() +
+  scale_color_gradient(low = "blue", high = "red") +
+  stat_smooth()
+```
+
+Los sistemas de coordenadas se utilizan para asignar una posición a los elementos visuales en el gráfico. ggplot2 proporciona una variedad de sistemas de coordenadas, incluidos cartesianos, polares y más.
+
+En nuestro ejemplo, usaremos la función \`coord_cartesian()\` para establecer los límites de los ejes \`x\` e \`y\`.
+
+```{r , include=TRUE}
+ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) +
+  geom_point() +
+  scale_color_gradient(low = "blue", high = "red") +
+  stat_smooth(method = "lm") +
+  coord_polar()
+```
+
+Las facetas se utilizan para dividir el gráfico en subgráficos más pequeños en función de una o más variables.
+
+Veamos que sucede si usamos la función facet_wrap() para dividir el gráfico en subgráficos según la variable de engranaje.
+
+```{r , include=TRUE}
+ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) +
+  geom_point() +
+  scale_color_gradient(low = "blue", high = "red") +
+  stat_smooth() +
+  coord_cartesian(xlim = c(1, 5), ylim = c(10, 35)) +
+  facet_wrap(~ gear)
+```
+
+### Tema
+
+Es un conjunto de estilos visuales congruentes, que pueden declararse sobre un gráfico de ggplot para modificar todos sus elementos a la vez, o de forma manual uno a uno.
+
+```{r , include=TRUE}
+library(viridis)
+ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) +
+  geom_point() +
+  scale_color_gradient(low = "blue", high = "red") +
+  stat_smooth() +
+  coord_cartesian(xlim = c(1, 5), ylim = c(10, 35)) +
+  facet_wrap(~ gear) +
+  viridis::scale_color_viridis()
+```
+
+```{r , include=TRUE}
+
+library(reshape2)
+library(RColorBrewer)
+
+# Load the mtcars data set
+data("mtcars")
+
+# Melt the mtcars data set to get it into the correct format for a heatmap
+mtcars_melted <- melt(mtcars[, c("mpg", "cyl", "wt")])
+
+# Create the heatmap
+p <- ggplot(mtcars_melted, aes(x = variable, y = variable, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = rev(brewer.pal(7, "Blues"))) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "Features", y = "Features", fill = "Measurement")
+
+p
+
+```
