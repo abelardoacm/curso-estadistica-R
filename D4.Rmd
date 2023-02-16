@@ -1,0 +1,224 @@
+---
+title: "D4"
+author: "Abelardo Aguilar"
+date: "2023-02-16"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introducción a las pruebas estadísticas no paramétricas
+
+Las pruebas estadísticas no paramétricas son técnicas que **no asumen una distribución específica para los datos**. A diferencia de las pruebas paramétricas, que requieren que los datos sigan una distribución normal u otra distribución conocida, las pruebas no paramétricas son más flexibles y pueden ser utilizadas en situaciones en las que no se cumple la suposición de normalidad.
+
+##### Carga de datos
+
+Comenzaremos cargando los datos del conjunto de datos "ToothGrowth". Este conjunto de datos contiene los resultados de un experimento que mide el crecimiento de dientes de cobayas en tres grupos diferentes según la dosis de vitamina C que reciben.
+
+knitr::opts_chunk\$set(echo = TRUE)
+
+```{r carga_datos, include=TRUE}
+data(ToothGrowth)
+```
+
+```{r histograma_len, include=TRUE}
+library(tidyverse)
+ggplot(ToothGrowth, aes(x=len)) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "white") +
+  labs(title = "Histograma de longitud de dientes", x = "Longitud", y = "Frecuencia")
+
+```
+
+```{r boxplot_len, include=TRUE}
+ggplot(ToothGrowth, aes(x=dose, y=len, fill=dose, group= dose)) +
+  geom_boxplot() +
+  labs(title = "Diagrama de cajas de longitud de dientes por dosis de vitamina C", x = "Dosis", y = "Longitud")
+
+```
+
+Observando los gráficos, podemos ver que la distribución de los datos no parece seguir una distribución normal. Por lo tanto, es apropiado utilizar pruebas no paramétricas para analizar estos datos.
+
+### Prueba de Wilcoxon
+
+La prueba de Wilcoxon es una prueba no paramétrica que se utiliza para comparar dos muestras independientes. En este caso, usaremos esta prueba para comparar las dosis de vitamina C de 0.5 mg y 1 mg.
+
+```{r wilkoxon, include=TRUE}
+# Separar los datos por dosis
+dosis_05 <- subset(ToothGrowth, dose == 0.5)$len
+dosis_1 <- subset(ToothGrowth, dose == 1)$len
+
+# Realizar la prueba de Wilcoxon
+wilcox.test(dosis_05, dosis_1)
+```
+
+El valor p obtenido en la prueba de Wilcoxon es menor que el nivel de significancia usual de 0.05, lo que indica que hay evidencia estadística suficiente para rechazar la hipótesis nula de que no hay diferencia entre las dosis de vitamina C.
+
+### Prueba de Kruskal-W
+
+La prueba de Kruskal-Wallis es una prueba no paramétrica que se utiliza para comparar más de dos muestras independientes. En este caso, usaremos esta prueba para comparar las tres dosis de vitamina C.
+
+```{r kruskal, include=TRUE}
+# Realizar la prueba de Kruskal-Wallis
+kruskal.test(len ~ dose, data = ToothGrowth)
+
+```
+
+El valor p obtenido en la prueba de Kruskal-Wallis es menor que el nivel de significancia usual de 0.05, lo que indica que hay evidencia estadística suficiente para rechazar la hipótesis nula de que no hay diferencia entre las dosis de vitamina C.
+
+```{r boxplot_2, include=TRUE}
+library(ggplot2)
+ggplot(ToothGrowth, aes(x=dose, y=len, fill=dose, group=dose)) +
+  geom_boxplot() +
+  labs(title = "Efecto de diferentes dosis de vitamina C en el crecimiento dental", x = "Dosis (mg)", y = "Longitud dental")
+```
+
+```{r kruskal, include=TRUE}
+
+# Prueba normalidad
+shapiro.test(mtcars$mpg)
+
+# QQ plot
+qqnorm(mtcars$mpg, main = "Gráfico de cuantiles-cuantiles para mpg")
+qqline(mtcars$mpg)
+
+# Separar los datos por tipo de transmisión
+manual <- subset(mtcars, am == 1)$mpg
+automatico <- subset(mtcars, am == 0)$mpg
+
+# Realizar la prueba de Wilcoxon
+wilcox.test(manual, automatico)
+
+# Realizar la prueba de Kruskal-Wallis
+kruskal.test(mpg ~ cyl, data = mtcars)
+
+# Realizar la prueba t de dos muestras
+t.test(manual, automatico)
+
+```
+
+La principal diferencia entre la prueba de Wilcoxon y la prueba de Kruskal-Wallis es que la primera se utiliza para comparar dos muestras independientes y la segunda se utiliza para comparar más de dos muestras independientes. Además, aunque ambas pruebas son no paramétricas, tienen suposiciones específicas sobre la forma de las distribuciones de los datos en cada grupo que deben cumplirse para producir resultados precisos.
+
+### Pruebas y probabilidad
+
+Vamos a imaginar un escenario en el que aplicamos pruebas.
+
+Supongan que tenemos una prueba de sangre, que es capaz de detectar correctamente el vampirismo el 95% de las veces.
+
+Esto podemos denotarlo como: la probabilidad de que el evento sea "positivo" dado que es "vampiro", de la siguiente forma. Pr(positivo\|vampiro)=0.95.
+
+Es una prueba sensible, sin embargo comete errores en la forma de falsos positivos, es decir generar un evento positivo dado que se aplicó a un mortal. Pr(positivo\|mortal)=0.01, es decir clasifica mal a un mortal una de cada cien ocasiones.
+
+Ahora aplicaremos nuestra prueba a una población que sabemos se infiltraron algunos vampiros. Lo único que sabemos del estado actual es que los vampiros son raros, representando solo el 0.1% de la población. Lo que implica que Pr(vampiro) = 0.001.
+
+Suponga ahora que un miembro aleatorio de la población es sometido a la prueba.
+
+Pregunta: ¿Cómo denotarían la probabilidad de que ese alguien sea ciertamente un vampiro, de la forma Pr(resultado del evento\|condición de la persona)?
+
+La aproximación correcta dicho cálculo proviene del teorema de la probabilidad posterior y puede escribirse:
+
+$Pr(\text{vampiro|positivo}) = \frac{Pr(\text{positivo|vampiro})Pr(\text{vampiro})}{Pr(\text{positivo})}$
+
+en donde Pr(positivo) es la probabilidad promedio del test sea positivo, a su vez denotado como:
+
+$Pr(\text{positivo}) = Pr(\text{positivo|vampiro}) Pr(\text{vampiro}) + Pr(\text{positivo|mortal})(1 - Pr(\text{vampiro}))$
+
+Generemos el código necesario para guardar estos valores.
+
+```{r boxplot_2, include=TRUE}
+PrPV <- 0.95 #positivo vampiro
+PrPM <- 0.01 #positivo mortal
+PrV <- 0.001
+PrP <- PrPV*PrV + PrPM*(1-PrV)
+( PrVP <- PrPV*PrV / PrP )
+```
+
+Corresponde a un 8.7% de probabilidad de tomar una persona de la población, aplicarle la prueba, que esta resulte positiva y que realmente se trate de un vampiro.
+
+Lo anterior puede parecer contraintuitivo para todos nosotros, pues la prueba parecía ser muy sensible... y lo es. Sin embargo, cuando la condición de interes, en este caso el vampirismo, es muuuuy rara, el tener una prueba que detecte los casos positivos no es una buena garantía de obtener información suficiente. La rason es que la mayor cantidad de datos positivos provienen de falsos positivos, incluso cuando todos los positivos sean detectados correctamente.
+
+Para aterrizar nuestras formulas salidas del cielo de una mejor manera presentaremos el problema una vez más, deseablemente de una forma más intuitiva.
+
+Supongamos ahora que en vez de presentar un reporte de la situación en probabilidades, sabemos lo siguiente:
+
+1.  En una población de 100,000 personas, 100 de ellas son vampiros.
+
+2.  De los 100 que son vampiros, 95 de ellos tienen una prueba positiva para vampirismo.
+
+3.  De los 99,000 mortales, 999 de ellos tienen una prueba positiva para vampirismo.
+
+Pregunta: Si testeamos a las 100,000 personas... ¿qué proporción de las que tienen un test positivo para vampiros son en verdad vampiros?
+
+Ahora solo debemos contar el numero de personas con un test positivo.
+
+```{r}
+95+999
+```
+
+De los cuales, solo 95 son vampiros reales, exactamente la misma respuesta que planteamos anteriormente pero de una forma más intuitiva y didáctica.
+
+Esta forma de presentar un problema utilizando conteos en vez de probabilidades se conoce como *natural frequencies.* Se sabe que la psicología humana funciona mejor cuando la información que recibe información de la forma en que lo haría en el mundo real, viendo los conteos y no las probabilidades detrás de ellas.
+
+... por eso durante la pandemia era tan difícil convencernos de la baja utilidad de las pruebas rápidas de covid.
+
+Reto de caso: En Ciudad de México habitan aproximadamente 9 millones de personas. Durante la pandemia de covid las primeras pruebas rápidas tenían una sensibilidad máxima de \~88%, en el periodo ventana de máxima detección.
+
+-   Codifica correctamente las variables en objetos
+
+```{r}
+
+```
+
+-   Lee los datos nacionales en el siguiente bloque de codigo (solo ejecutar)
+
+```{r}
+Covid_Nacional <- read.csv("Casos_Diarios_Estado_Nacional_Confirmados_20230214.csv")
+Covid_CDMX <- Covid_Nacional %>% dplyr::filter(nombre=="DISTRITO FEDERAL") %>% dplyr::select(-c(1:3)) %>% t() %>% as.data.frame()
+Covid_CDMX$n_dia <- 1:nrow(Covid_CDMX)
+colnames(Covid_CDMX)[1] <- "Infectados_estimados"
+```
+
+-   Realiza el gráfico de la progresión de los casos con ggplot
+
+```{r}
+
+```
+
+-   Agrega una columna con el cálculo de cuántos test positivos tendríamos de poder aplicar la prueba a 1/10 de la población.
+
+```{r}
+
+```
+
+-   Agrega una columna con un valor de la de la prueba rápida, medida como el cociente de (correctamente diagnosticados / falsos positivos)
+
+```{r}
+
+```
+
+-   Realiza el gráfico de la progresión de la aplicabilidad de las pruebas rápidas en el transcurso de la pandemia.
+
+```{r}
+
+```
+
+-   Compara con otra entidad federativa
+
+```{r}
+
+```
+
+Preguntas:
+
+1.  De acuerdo a nuestro ejercicio cuándo ha sido el mejor momento histórico para la detección mediante pruebas rápidas.
+
+2.  Cómo enfocarías tus recursos para diseñar una prueba más eficiente.
+
+3.  Podríamos invertir la aproximación, es decir, en vez de detectar la presencia del virus, detectar su ausencia. ¿Qué implicaciones tendría en la aplicabilidad de las pruebas?
+
+Reto 2: Considera ahora una prueba con una frecuencia de falsos negativos de 20% (mejor rendimiento de la PCR en el periodo de mayor detección). Realiza un análisis similar de su utilidad.
+
+```{r}
+
+```
