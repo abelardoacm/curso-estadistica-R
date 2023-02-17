@@ -1,0 +1,191 @@
+---
+title: "El agua del planeta"
+author: "Abelardo"
+date: "2023-02-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Modelos estadísticos
+
+## Conjeturas y plausibilidades
+
+La inferencia estadística puede trabajar tanto con conteos crudos como con probabilidades. Si recordamos el ejemplo de la bolsa de canicas, en el construimos distintas conjeturas para las cuales calculamos sus plausibilidades, esto a partir de conteos crudos de canicas observadas. En el ejemplo de las canicas enunciabamos oraciones del tipo "cuál es la plausibilidad de tal conjetura para dar pie a observar 5 canicas negras y 1 blanca".
+
+Pensemos ahora en oraciones del tipo "cuál es la plausibilidad de mi modelo para generar una proporción de 1/5 de canicas negras y 1/5 de canicas blancas". Este sencillo tiene un gran impacto en nuestros modelos estadísticos.
+
+## El agua del planeta
+
+Comencemos con una pregunta a explorar ¿cuál es la proporción de agua en el planeta?
+
+Supongan que tenemos un generador aleatorio de coordenadas (<https://www.random.org/geographic-coordinates/>). En nuestro ejercicio generamos una coordenada del planeta Tierra y que podemos echar un vistazo al sitio que indica.
+
+Al observarlo, registraremos si el sitio corresponde a superficie cubierta por tierra o mar.
+
+Esta estrategia generará una secuencia de superficies que puede representarse como T para tierra y A para agua.
+
+Nuestras primeras muestras podrían verse de esta forma:
+
+A T A A A T A T A
+
+Podemos comenzar a relacionarnos ademas con ciertos procedimientos comunes al método estadístico.
+
+El primer paso consiste en utilizar una nomenclatura para nuestros datos y relaciones.
+
+Por ejemplo en nuestro caso podríamos hacer algunos enunciados:
+
+1.  La proporción real del agua en el planeta será denotada como *p*, y es la proporción que pretendemos inferir.
+
+2.  Al visitar un sitio aleatoriamente, la probabilidad de caer en un sitio con agua es igual al valor de *p*, mientras que la de caer en tierra es 1-p
+
+3.  Podemos decir entonces que la probabilidad de añadir una A en nuestras observaciones es de p, mientras que la de añadir una T es 1-p.
+
+4.  Muy importante, el siguiente lugar que visitemos es independiente del inicial.
+
+Al enunciar estas oraciones hemos construido un modelo formal de probabilidad.
+
+### No hay infinitas conjeturas
+
+Nuestra tarea hasta este punto se ha convertido en explorar las distintas conjeturas al observar datos y plantear el valor más probable de p.
+
+Sin embargo... ¿qué pasaría si seguimos la estrategia de las canicas?. Si recuerdan, en la bolsa de canicas planteamos a las conjeturas como muchos caminos bifurcándose desde el centro y los nodos eran colores de canicas observables. El problema de seguir explorando conteos absolutos es que dicho entramado de canicas puede crecer infinitamente, y no así las conjeturas posibles.
+
+Por ejemplo, volviendo a la proporción de agua en el planeta, observar los siguientes resultados en nuestra exploración resulta redundante:
+
+A T A T A T A T
+
+T A T A T A T A
+
+A A A A T T T T
+
+T T T T A A A A
+
+Pues todos apuntan a una proporción de 50/50... es por ello que preferimos codificar y poner a prueba no los conteos crudos en sí, sino las proporciones.
+
+### Plausibilidad inicial - prior
+
+Nuestro modelo debe partir siempre de una plausibilidad inicial para cada conjetura posible. Esta debe ser enunciable y traducible a una distribución de probabilidad.
+
+Un caso común es un *prior* en el que todas las conjeturas (proporciones agua - tierra) son igual de plausibles (incluso las proporciones como 0% vs 100%)
+
+Pregunta: Con el conocimiento a priori de cada uno de nosotros sobre la proporción de agua en el planeta, ¿sería correcto comenzar con un prior plano?.
+
+### Actualización de la plausibilidad - updating
+
+Tal como en nuestro ejemplo de las canicas, las nuevas observaciones no deben significar una plausibilidad totalmente nueva, sino una que incorpore la información anterior y así sucesivamente, haciendo del cálculo de la plausibilidad un procedimiento consecutivo y reversible.
+
+¿Cómo podemos calcular la plausibilidad de nuestras conjeturas?. En el caso de la exploración del agua/tierra en el planeta, comenzaremos nombrando todos los posibles eventos. Existen dos: agua (A) y tierra (T). Cuando tenemos una muestra de cierta longitud, por ejemplo, 9 observaciones tenemos que calcular qué tan plausible es que esa muestra exacta, en comparación a todas las muestras de una longitud similar.
+
+En este caso, una vez que consideramos los enunciados planteados inicialmente, respecto a la independencia de eventos, y a que la proporción real de agua y tierra es estática, podemos recurrir a la distribución binomial.
+
+Con ello, la probabilidad de observar cierta cantidad de A (agua) con una probabilidad p es calculado en R con la siguiente sintáxis.
+
+```{r}
+# Probabilidad de observar 6 veces agua, en una muestra de 9 eventos totales, en un mundo con mitad de agua y mitad de tierra.
+
+dbinom( 6 , size=9 , prob=0.5 )
+```
+
+Pregunta: ¿Cómo utilizarían la misma fución para calcular...?
+
+1.  La probabilidad de lanzar 7 veces un dado y observar 6 veces el número 1
+
+2.  La probabilidad de lanzar una 100 moneda y obtener 30 veces águila.
+
+Nuestra tarea ahora se ha simplificado!!! y consiste en explorar el valor de p, de esa misma función, que sea más plausible para nuestras observaciones
+
+### Parámetros
+
+Podemos pensar en los parámetros como pequeñas descripciones que dibujan a nuestra conjetura. Por ejemplo al llamar a nuestra función anterior, los argumentos size=9 y prob=0.5 son parámetros para dibujar nuestra distribución binomial.
+
+### Echando a andar al modelo
+
+Una vez que hemos definido a los parámetros de nuestro modelo y lo que queremos investigar, podemos explorar distintas proporciones de agua/tierra y ponerlas a prueba.
+
+Para ello seguiremos una aproximación sencilla conocida como "aproximación de gradillas", en la que definimos un conjunto de valores de p a poner a prueba.
+
+Hagamos una gradilla de n puntos para explorar, que abarquen desde una proporción de 0% agua hasta 100% agua.
+
+```{r}
+n = 20
+(puntos_gradilla <- seq( from=0 , to=1 , length.out=n))
+```
+
+También tenemos que definir un prior, es decir las plausibilidades a considerar en un inicio. Partamos de un prior plano, es decir con valor de 1 para todas las conjeturas.
+
+```{r}
+(prior <- rep(1,n))
+```
+
+Y estamos listos para evaluar nuestras n conjeturas respecto a su plausibilidad para generar nuestras proporciones observadas:
+
+#Genera una muestra de 9 observaciones y escribela en el siguiente bloque
+
+```{r}
+observacion <- c("A","T","A","A","A","T","A","T","A")
+n_A <- length(which(observacion=="A"))
+n_T <- length(which(observacion=="T"))
+```
+
+calcula la plausibilidad de dichas observaciones para las conjeturas de nuestra gradilla
+
+```{r}
+plausibilidades <- dbinom(n_A, size = 9, prob = puntos_gradilla)
+```
+
+Estima el producto del prior y las plausibilidades. El resultado es lo que se conoce como probabilidad posterior y estandarizala para que su suma sea igual a 1.
+
+```{r}
+posterior <- prior * plausibilidades
+posterior_st <- posterior/sum(posterior)
+```
+
+Genera un gráfico de ggplot para mostrar la distribución posterior.
+
+```{r}
+posterior_st.df <- data.frame(Proporción_agua = puntos_gradilla, Probabilidad_posterior = posterior_st )
+
+ggplot(posterior_st.df, aes(x=Proporción_agua, y=Probabilidad_posterior))+
+  geom_point()+
+  geom_line()
+
+```
+
+#Nota: Prueba ahora con distintos prior.
+
+```{r}
+prior2 <- ifelse( puntos_gradilla < 0.5 , 0 , 1 )
+prior3 <- exp( -5*abs( puntos_gradilla - 0.5 ) )
+```
+
+#Nota: Prueba ahora con una menor y mayor cantidad de puntos.
+
+#Reto práctico: Genera el código para visualizar todos los estados de la probabilidad posterior, al haber observado sólo una coordenada, luego dos y así sucesivamente.
+
+### Aproximación cuadrática
+
+Como lo mencionamos anteriormente, una forma de explorar una distribución posterior para encontrar la conjetura con la máxima plausibilidad puede ser no calcular puntos específicos, sino explorar la curvatura a lo largo de un grupo de puntos contiguos. Esto se basa en que la máxima plausibilidad típicamente será un punto de la probabilidad posterior en flanqueada por curvaturas pronunciadas.
+
+Para ello utilizaremos el paquete rethinking, que nos permite "comunicar" nuestro modelo a R de una forma sencilla.
+
+```{r}
+library(rethinking)
+agua_tierra_modelo.cuad <- map(
+alist(
+A ~ dbinom(9,p) , # plausibilidad binomialood
+p ~ dunif(0,1) # prior uniforme
+) ,
+data=list(A=n_A) )
+
+# explora el modelo con una aproximación cuadrática
+precis(agua_tierra_modelo.cuad)
+```
+
+# 
+
+Pregunta: Investiga cuál es la proporción de agua en el planeta, ¿cuántas observaciones fueron necesarias para generar una aproximación suficiente?
+
